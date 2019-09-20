@@ -4,37 +4,39 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-exports.helloWorld = functions.https.onRequest((request, response) => {
- response.send("Hello from Firebase!");
-});
+const express = require('express');
+const app = express();
 
-// functions namespace
-// req, res are args
-exports.getScreams = functions.https.onRequest((req, res) => {
-    // pass in name of collection. 
-    // documentation: Cloud Firestore -> Read data -> Get data once
+// first arg, name of route
+// 2nd arg, name of handler
+app.get('/screams', (req, res) => {
     admin.firestore().collection('screams').get().then(data => {
         let screams = [];
         data.forEach(doc => {
-            // populate screams
-            screams.push(doc.data());
+            screams.push({
+                screamId: doc.id,
+                body: doc.data().body,
+                userHandle: doc.data().userHandle,
+                createdAt: doc.data().createdAt
+                // node 6: ...doc.data() would get all data
+            });
         });
-        // return as json object
         return res.json(screams);
     })
-    // catch errors and log to console
     .catch(err => console.error(err));
 });
 
-exports.createScream = functions.https.onRequest((req, res) => {
+app.post('/scream', (req, res) => {
+    // account for non-POST requests
+    if (req.method !== 'POST') {
+        return res.status(400).json({ error: 'Method not allowed'});
+    }
     const newScream = {
         // body of request, property body in body
         body: req.body.body,
         userHandle: req.body.userHandle,
-        createdAt: admin.firestore.Timestamp.fromDate(new Date())
+        createdAt: admin.firestore.Timestamp.fromDate(new Date()),
+        data: "test"
     };
 
     // access db
@@ -53,3 +55,9 @@ exports.createScream = functions.https.onRequest((req, res) => {
             console.error(err);
         });
 });
+
+// app is container for all routes
+// best practices:
+// https://baseurl.com/api/
+// or https://api.baseurl.com
+exports.api = functions.https.onRequest(app);
