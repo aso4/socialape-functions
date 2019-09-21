@@ -10,7 +10,11 @@ const app = express();
 // first arg, name of route
 // 2nd arg, name of handler
 app.get('/screams', (req, res) => {
-    admin.firestore().collection('screams').get().then(data => {
+    admin
+      .firestore()
+      .collection('screams')
+      .orderBy('createdAt', 'desc')
+      .get().then(data => {
         let screams = [];
         data.forEach(doc => {
             screams.push({
@@ -35,7 +39,7 @@ app.post('/scream', (req, res) => {
         // body of request, property body in body
         body: req.body.body,
         userHandle: req.body.userHandle,
-        createdAt: admin.firestore.Timestamp.fromDate(new Date()),
+        createdAt: new Date().toISOString(),
         data: "test"
     };
 
@@ -61,3 +65,5 @@ app.post('/scream', (req, res) => {
 // https://baseurl.com/api/
 // or https://api.baseurl.com
 exports.api = functions.https.onRequest(app);
+// change region
+// exports.api = functions.region('europe-west1').https.onRequest(app);
