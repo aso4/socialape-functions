@@ -1,11 +1,25 @@
 const functions = require('firebase-functions');
 // gain access to db via sdk
 const admin = require('firebase-admin');
+// calls express on same line
+const app = require('express')();
 
 admin.initializeApp();
 
-const express = require('express');
-const app = express();
+var firebaseConfig = {
+    apiKey: "AIzaSyD0fVBb1FO3I5U6I8CFTyZitBMGoIjyhE4",
+    authDomain: "socialape-603.firebaseapp.com",
+    databaseURL: "https://socialape-603.firebaseio.com",
+    projectId: "socialape-603",
+    storageBucket: "socialape-603.appspot.com",
+    messagingSenderId: "521755814690",
+    appId: "1:521755814690:web:7c6dd2e82862b26022537b"
+};
+
+const firebase = require('firebase');
+
+// need this to authenticate
+firebase.initializeApp(firebaseConfig);
 
 // first arg, name of route
 // 2nd arg, name of handler
@@ -60,10 +74,27 @@ app.post('/scream', (req, res) => {
         });
 });
 
-// app is container for all routes
-// best practices:
-// https://baseurl.com/api/
-// or https://api.baseurl.com
+// signup route
+app.post('/signup', (req, res) =>  {
+    const newUser = {
+        email: req.body.email,
+        password: req.body.password,
+        confirmPassword: req.body.confirmPassword,
+        handle: req.body.handle
+    };
+
+    // TODO: validate data
+
+    firebase.auth().createUserWithEmailAndPassword(newUser.email, newUser.password)
+      .then(data => {
+          // registration success
+          return res.status(201).json({ message: `user ${data.user.uid} signed up successfully` })
+      })
+      .catch(err => {
+          console.err(err);
+          return res.status(500).json({ error: err.code });
+      })
+});
 exports.api = functions.https.onRequest(app);
 // change region
 // exports.api = functions.region('europe-west1').https.onRequest(app);
