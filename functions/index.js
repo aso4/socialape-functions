@@ -6,17 +6,11 @@ const app = require('express')();
 
 admin.initializeApp();
 
-var firebaseConfig = {
-    apiKey: "AIzaSyD0fVBb1FO3I5U6I8CFTyZitBMGoIjyhE4",
-    authDomain: "socialape-603.firebaseapp.com",
-    databaseURL: "https://socialape-603.firebaseio.com",
-    projectId: "socialape-603",
-    storageBucket: "socialape-603.appspot.com",
-    messagingSenderId: "521755814690",
-    appId: "1:521755814690:web:7c6dd2e82862b26022537b"
-};
+
 
 const firebase = require('firebase');
+
+const db = admin.firestore();
 
 // need this to authenticate
 firebase.initializeApp(firebaseConfig);
@@ -24,8 +18,7 @@ firebase.initializeApp(firebaseConfig);
 // first arg, name of route
 // 2nd arg, name of handler
 app.get('/screams', (req, res) => {
-    admin
-      .firestore()
+    db
       .collection('screams')
       .orderBy('createdAt', 'desc')
       .get().then(data => {
@@ -57,8 +50,7 @@ app.post('/scream', (req, res) => {
         data: "test"
     };
 
-    // access db
-    admin.firestore()
+    db
     // access collection
         .collection('screams')
         // create/write
@@ -83,17 +75,31 @@ app.post('/signup', (req, res) =>  {
         handle: req.body.handle
     };
 
-    // TODO: validate data
-
-    firebase.auth().createUserWithEmailAndPassword(newUser.email, newUser.password)
-      .then(data => {
-          // registration success
-          return res.status(201).json({ message: `user ${data.user.uid} signed up successfully` })
+    // path
+    db.doc(`/users/${newUser.handle}`).get()
+    // promise
+      .then((doc) => {
+          if (doc.exists) {
+              // problem
+              return res.status(400).json({ handle: 'this handle is already taken' });
+          } else {
+            firebase
+            .auth()
+            .createUserWithEmailAndPassword(newUser.email, newUser.password);
+          }
       })
-      .catch(err => {
-          console.err(err);
+      .then((data) => {
+          // return authentication token so user can request more data
+          return data.user.getIdToken();
+      })
+      .then((token) => {
+          return res.status(201).json({ token });
+      })
+      .catch((err) => {
+          console.error(err);
           return res.status(500).json({ error: err.code });
-      })
+      });
+
 });
 exports.api = functions.https.onRequest(app);
 // change region
